@@ -1897,7 +1897,7 @@ pre .javascript .function {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #b4aa0e;
+  background: #1a1c38;
 }
 .links-of-blogroll {
   font-size: 13px;
@@ -3326,4 +3326,7 @@ pre .addition {
 }
 pre .deletion {
   background: #ffeef0;
+}
+.post-comments-count {
+  display: none;
 }
