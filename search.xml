@@ -3,7 +3,7 @@
   <entry>
     <title><![CDATA[迁移Valine到Disqus]]></title>
     <url>%2Farticles%2Fchange_valine_to_disqus.html</url>
-    <content type="text"><![CDATA[最近由于Leancloud DNS解析不稳定的原因，决定把评论系统从Valine迁移到Disqus。 也正好把博客从国外主机迁移回Github Pages 上。 缘由今年过完年以后就没写过博客了，一个原因是因为懒，另外一个原因也是因为最近国外的主机不太稳定，5月底banwagong的VPS被封了，6月初leancloud又莫名其妙无法解析DNS，导致我的博客访问很不稳定，评论系统也挂了，有考虑过自己搭建一个WordPress，但是在国内的话又要备案，想想还是算了，这一折腾又要好几天。还是直接把评论系统迁移到Disqus省事。 正好banwagong也放弃了，把博客老老实实放回到Github上，以后安安静静写博客，不折腾了。 博客迁移由于我之前hexo -deploy的时候就是vps和github两个仓库都会push的，因此Github上一直都有我最新的代码。这次只要把域名解析换一下就可以了。 这部分没有截图，所以也不细说了，有需要的童鞋可以直接谷歌github自定义域名 重点说一下Disqus的迁移 评论迁移我用的是next主题，本身就内置了Disqus，因此步骤比较简单 注意：Disqus需要梯子，国内无法直接访问。 1.注册一个Disqus账号打开 disqus官方：https://disqus.com/ ，注册一个账号 2.创建网站登录后，点击 GET STARTED 然后选择第二个 I want to install Disqus on my site Your Sites输入你的网址，还有Website Name, 这一栏填写的就是hexo中所使用的short_name, category选择种类，我的是Tech 进入到Install Disqus界面，这里我们选择 Universal Code，因为Hexo不在列表项里面。 最后进入到Configure Disqus界面，这里填入Website Name 和 Website URL，name一般是上面填写的short_name。 3.配置本地文件打开主题配置文件_config.yml 搜索disqus，输入short_name，保存再重启hexo就可以了 总结虽然在墙内用不了Disqus，但是慢慢我也想通了，写博客暂时对于我来说就是一个记录的地方，如果以后慢慢访问量增加了，可能我也会考虑自己搭建WP，所以的东西都保存到自己的服务器上，这样更加安全和稳定。 现在还是专心写博客，提升自己。 最后附上Valine的评论统计截图。纪念过去的341条评论，谢谢你们！]]></content>
+    <content type="text"><![CDATA[最近由于Leancloud DNS解析不稳定的原因，决定把评论系统从Valine迁移到Disqus。 也正好把博客从国外主机迁移回Github Pages 上。 缘由今年过完年以后就没写过博客了，一个原因是因为懒，另外一个原因也是因为最近国外的主机不太稳定，5月底banwagong的VPS被封了，6月初leancloud又莫名其妙无法解析DNS，导致我的博客访问很不稳定，评论系统也挂了，有考虑过自己搭建一个WordPress，但是在国内的话又要备案，想想还是算了，这一折腾又要好几天。还是直接把评论系统迁移到Disqus省事。 正好banwagong也放弃了，把博客老老实实放回到Github上，以后安安静静写博客，不折腾了。 博客迁移由于我之前hexo -deploy的时候就是vps和github两个仓库都会push的，因此Github上一直都有我最新的代码。这次只要把域名解析换一下就可以了。 这部分没有截图，所以也不细说了，有需要的童鞋可以直接谷歌github自定义域名 重点说一下Disqus的迁移 评论迁移我用的是next主题，本身就内置了Disqus，因此步骤比较简单 注意：Disqus需要梯子，国内无法直接访问。 注册Disqus账号打开 disqus官方：https://disqus.com/ ，注册一个账号 创建站点登录后，点击 GET STARTED 然后选择第二个 I want to install Disqus on my site Your Sites输入你的网址，还有Website Name, 这一栏填写的就是hexo中所使用的short_name, category选择种类，我的是Tech 进入到Install Disqus界面，这里我们选择 Universal Code，因为Hexo不在列表项里面。 最后进入到Configure Disqus界面，这里填入Website Name 和 Website URL，name一般是上面填写的short_name。 配置本地文件打开主题配置文件_config.yml 搜索disqus，输入short_name，保存再重启hexo就可以了 总结虽然在墙内用不了Disqus，但是慢慢我也想通了，暂时这个博客对于我来说就是一个记录的地方，时间精力应该放在写作和学习，而不是折腾上。如果以后访问量增加了，可能我也会考虑自己搭建WP，所有的东西都保存到自己的服务器上，这样更加安全和稳定。 现在还是专心写博客，提升自己。 最后附上Valine的评论统计截图。纪念过去的341条评论，谢谢你们！]]></content>
       <categories>
         <category>技术向</category>
       </categories>
@@ -467,8 +467,8 @@
       </categories>
       <tags>
         <tag>Android</tag>
-        <tag>第三方控件</tag>
         <tag>腾讯地图</tag>
+        <tag>第三方控件</tag>
       </tags>
   </entry>
   <entry>
@@ -480,8 +480,8 @@
       </categories>
       <tags>
         <tag>Android</tag>
-        <tag>高德地图</tag>
         <tag>第三方控件</tag>
+        <tag>高德地图</tag>
       </tags>
   </entry>
   <entry>
