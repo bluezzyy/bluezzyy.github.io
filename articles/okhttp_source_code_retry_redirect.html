@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+  <link href="https://cdn.bootcss.com/fancybox/3.2.5/jquery.fancybox.min.css" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+    
+      
+    
+
+    
+  
+
+  
+
+  
+    
+      
+    
+
+    
+  
+
+  
+    
+      
+    
+
+    
+  
+
+  
+    
+    
+    <link href="https://fonts.cat.net/css?family=Lato:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|Roboto Mono:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+  
+
+<link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon4.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon4.ico?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon4.ico?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/favicon4.ico?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Adnroid Source Code,OkHttp,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="OkHttp4.3源码解析之 - 重试和重定向回顾上一篇文章：发起请求  大家还记得OkHttp是如何发起一条请求的吗？上面这篇文章里介绍了OkHttp是在什么时候把多个拦截器加入到责任链中的。如果大家没看过的可以先去了解一下，因为这个流程和本文息息相关。 如果是忘了的话我们再简单的回顾一遍：  构建OkHttpClient对象 构建Request对象 使用enqueue()发起请求，并处理回调">
+<meta name="keywords" content="Adnroid Source Code,OkHttp">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OkHttp4.3源码解析之 - 重试和重定向">
+<meta property="og:url" content="https://www.bluelzy.com/articles/okhttp_source_code_retry_redirect.html">
+<meta property="og:site_name" content="BlueLzy&#39;s Blog">
+<meta property="og:description" content="OkHttp4.3源码解析之 - 重试和重定向回顾上一篇文章：发起请求  大家还记得OkHttp是如何发起一条请求的吗？上面这篇文章里介绍了OkHttp是在什么时候把多个拦截器加入到责任链中的。如果大家没看过的可以先去了解一下，因为这个流程和本文息息相关。 如果是忘了的话我们再简单的回顾一遍：  构建OkHttpClient对象 构建Request对象 使用enqueue()发起请求，并处理回调">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2020-02-16T09:23:17.290Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="OkHttp4.3源码解析之 - 重试和重定向">
+<meta name="twitter:description" content="OkHttp4.3源码解析之 - 重试和重定向回顾上一篇文章：发起请求  大家还记得OkHttp是如何发起一条请求的吗？上面这篇文章里介绍了OkHttp是在什么时候把多个拦截器加入到责任链中的。如果大家没看过的可以先去了解一下，因为这个流程和本文息息相关。 如果是忘了的话我们再简单的回顾一遍：  构建OkHttpClient对象 构建Request对象 使用enqueue()发起请求，并处理回调">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":true,"scrollpercent":true,"onmobile":true},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+
+
+
+
+  <title>OkHttp4.3源码解析之 - 重试和重定向 | BlueLzy's Blog</title>
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-111407613-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">BlueLzy's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Genius only means hard-working all one's life</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://www.bluelzy.com/articles/okhttp_source_code_retry_redirect.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="BlueLzy">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/favicon4.ico">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="BlueLzy's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">OkHttp4.3源码解析之 - 重试和重定向</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表时间</span>
+              
+              <time title="创建时间" itemprop="dateCreated datePublished" datetime="2020-02-16T17:17:54+08:00">
+                2020-02-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Android-OkHttp/" itemprop="url" rel="index">
+                    <span itemprop="name">Android, OkHttp</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/okhttp_source_code_retry_redirect.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="articles/okhttp_source_code_retry_redirect.html" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="OkHttp4-3源码解析之-重试和重定向"><a href="#OkHttp4-3源码解析之-重试和重定向" class="headerlink" title="OkHttp4.3源码解析之 - 重试和重定向"></a>OkHttp4.3源码解析之 - 重试和重定向</h1><blockquote class="blockquote-center"><h2 id="回顾"><a href="#回顾" class="headerlink" title="回顾"></a>回顾</h2><p>上一篇文章：<a href="https://www.bluelzy.top/okhttp-source-code-request/" target="_blank" rel="noopener">发起请求</a> </p>
+<p>大家还记得OkHttp是如何发起一条请求的吗？上面这篇文章里介绍了OkHttp是在什么时候把多个拦截器加入到责任链中的。如果大家没看过的可以先去了解一下，因为这个流程和本文息息相关。</p>
+<p>如果是忘了的话我们再简单的回顾一遍：</p>
+<ul>
+<li>构建OkHttpClient对象</li>
+<li>构建Request对象</li>
+<li>使用enqueue()发起请求，并处理回调</li>
+</ul>
+<p>在第一步里，我们可以通过addInterceptor(xxx)来添加自定义的拦截器，在第三步里，我们通过源码可以看到在RealCall中通过getResponseWithInterceptorChain()方法来处理这些拦截器。</p>
+</blockquote>
+
+
+
+ <a id="more"></a>
+
+<h2 id="一个简单的例子"><a href="#一个简单的例子" class="headerlink" title="一个简单的例子"></a>一个简单的例子</h2><p>现在有个需求，希望每个请求都能把请求时间给打印出来，该怎么做呢？</p>
+<p>OkHttpTest类</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">OkHttpTest</span> </span>&#123;    </span><br><span class="line">	<span class="keyword">internal</span> <span class="function"><span class="keyword">fun</span> <span class="title">test</span><span class="params">()</span></span> &#123;</span><br><span class="line">        Request.Builder()</span><br><span class="line">            .url(<span class="string">"https://www.baidu.com"</span>).build().let &#123; request -&gt;</span><br><span class="line">                OkHttpClient.Builder()</span><br><span class="line">                    .addInterceptor(LoggingInterceptor()) <span class="comment">// 添加自定义的拦截器</span></span><br><span class="line">                    .build()</span><br><span class="line">                    .newCall(request).enqueue(<span class="keyword">object</span> : Callback &#123;</span><br><span class="line">                        <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onFailure</span><span class="params">(call: <span class="type">Call</span>, e: <span class="type">IOException</span>)</span></span> &#123;</span><br><span class="line">                            println(<span class="string">"bluelzy --- <span class="subst">$&#123;e.message&#125;</span>"</span>)</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                        <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onResponse</span><span class="params">(call: <span class="type">Call</span>, response: <span class="type">Response</span>)</span></span> &#123;</span><br><span class="line">                            println(<span class="string">"bluelzy --- <span class="subst">$&#123;response.body.toString()&#125;</span>"</span>)</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                    &#125;)</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>LoggingInterceptor</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LoggingInterceptor</span> : <span class="type">Interceptor &#123;</span></span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">intercept</span><span class="params">(chain: <span class="type">Interceptor</span>.<span class="type">Chain</span>)</span></span>: Response &#123;</span><br><span class="line">        <span class="keyword">val</span> request = chain.request()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">val</span> startTime = System.nanoTime()</span><br><span class="line">        logger.info(String.format(<span class="string">"Bluelzy --- Sending request %s"</span>, request.url)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">val</span> response = chain.proceed(request)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">val</span> endTime = System.nanoTime()</span><br><span class="line">        logger.info(String.format(<span class="string">"Bluelzy --- Received response from %s in %.1fms%n%s"</span>,</span><br><span class="line">            response.request.url, (endTime-startTime)/<span class="number">1e6</span>, response.headers))</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> response</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行程序然后打开Logcat</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">com.bluelzy.kotlinlearning</span> <span class="string">I/TaskRunner:</span> <span class="string">Bluelzy</span> <span class="meta">---</span> <span class="string">Sending</span> <span class="string">request</span> <span class="attr">https://www.baidu.com/</span> </span><br><span class="line"><span class="string">com.bluelzy.kotlinlearning</span> <span class="string">I/TaskRunner:</span> <span class="string">Bluelzy</span> <span class="meta">---</span> <span class="string">Received</span> <span class="string">response</span> <span class="string">for</span> <span class="attr">https://www.baidu.com/</span> <span class="string">in</span> <span class="number">172.9</span><span class="string">ms</span></span><br><span class="line"><span class="attr">    Cache-Control:</span> <span class="string">private,</span> <span class="literal">no</span><span class="bullet">-cache,</span> <span class="literal">no</span><span class="bullet">-store,</span> <span class="string">proxy-revalidate,</span> <span class="literal">no</span><span class="bullet">-transform</span></span><br><span class="line"><span class="attr">    Connection:</span> <span class="string">keep-alive</span></span><br><span class="line"><span class="attr">    Content-Type:</span> <span class="string">text/html</span></span><br><span class="line"><span class="attr">    Date:</span> <span class="string">Sat,</span> <span class="number">15</span> <span class="string">Feb</span> <span class="number">2020</span> <span class="number">12</span><span class="string">:41:37</span> <span class="string">GMT</span></span><br><span class="line"><span class="attr">    Last-Modified:</span> <span class="string">Mon,</span> <span class="number">23</span> <span class="string">Jan</span> <span class="number">2017</span> <span class="number">13</span><span class="string">:24:32</span> <span class="string">GMT</span></span><br><span class="line"><span class="attr">    Pragma:</span> <span class="literal">no</span><span class="bullet">-cache</span></span><br><span class="line"><span class="attr">    Server:</span> <span class="string">bfe/1.0.8.18</span></span><br><span class="line"><span class="attr">    Set-Cookie:</span> <span class="string">BDORZ=27315;</span> <span class="string">max-age=86400;</span> <span class="string">domain=.baidu.com;</span> <span class="string">path=/</span></span><br><span class="line"><span class="attr">    Transfer-Encoding:</span> <span class="string">chunked</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到这里把我们需要的信息都打印出来了。</p>
+<p>思考一下：</p>
+<ul>
+<li>这个logger拦截器是怎么添加到OkHttp的呢？</li>
+<li>OkHttp如何运用责任链模式进行多个不同网络层之间的责任划分？</li>
+<li>我们在实际开发中还能运用责任链模式做其他什么操作吗？</li>
+</ul>
+<h2 id="OkHttp中的责任链模式"><a href="#OkHttp中的责任链模式" class="headerlink" title="OkHttp中的责任链模式"></a>OkHttp中的责任链模式</h2><h3 id="自定义的拦截器是如何添加到OkHttp中的？"><a href="#自定义的拦截器是如何添加到OkHttp中的？" class="headerlink" title="自定义的拦截器是如何添加到OkHttp中的？"></a>自定义的拦截器是如何添加到OkHttp中的？</h3><p>还记得上一篇文章说的吗，我们构建一个OkHttpClient对象，使用的就是Builder模式，通过addInterceptor(interceptor: Interceptor) 这个方法，把拦截器加入到队列中，这个拦截器队列就是OkHttpClient中的一个全局变量，不仅用于存放我们自定义的拦截器，也用于存放OkHttp默认实现的拦截器。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">addInterceptor</span><span class="params">(interceptor: <span class="type">Interceptor</span>)</span></span> = apply &#123;</span><br><span class="line">  interceptors += interceptor</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="OkHttp的责任链模式是如何起作用的？"><a href="#OkHttp的责任链模式是如何起作用的？" class="headerlink" title="OkHttp的责任链模式是如何起作用的？"></a>OkHttp的责任链模式是如何起作用的？</h3><p>我们看RealCall里的这段代码：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Throws(IOException::class)</span></span><br><span class="line">  <span class="function"><span class="keyword">fun</span> <span class="title">getResponseWithInterceptorChain</span><span class="params">()</span></span>: Response &#123;</span><br><span class="line">    <span class="comment">// Build a full stack of interceptors.</span></span><br><span class="line">    <span class="keyword">val</span> interceptors = mutableListOf&lt;Interceptor&gt;()</span><br><span class="line">    interceptors += client.interceptors</span><br><span class="line">    interceptors += RetryAndFollowUpInterceptor(client)</span><br><span class="line">    interceptors += BridgeInterceptor(client.cookieJar)</span><br><span class="line">    interceptors += CacheInterceptor(client.cache)</span><br><span class="line">    interceptors += ConnectInterceptor</span><br><span class="line">    <span class="keyword">if</span> (!forWebSocket) &#123;</span><br><span class="line">      interceptors += client.networkInterceptors</span><br><span class="line">    &#125;</span><br><span class="line">    interceptors += CallServerInterceptor(forWebSocket)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 省略代码</span></span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里做了几件事：</p>
+<ul>
+<li>把OkHttpClient里面的Interceptor加入到列表中</li>
+<li>把默认的几个Interceptor加入到列表中</li>
+<li>判断是不是Socket请求，不是的话把networkInterceptor加入到列表中</li>
+<li>最后加入CallServerInterceptor，这个拦截器是用来向服务器发起请求的，因此要加在最后</li>
+</ul>
+<h4 id="RetryAndFollowUpInterceptor"><a href="#RetryAndFollowUpInterceptor" class="headerlink" title="RetryAndFollowUpInterceptor"></a>RetryAndFollowUpInterceptor</h4><p>大家如果看了上一篇文章的话，应该还记得真正处理责任链的是<code>RetryAndFollowUpInterceptor.proceed()</code>方法，通过index取出对应的拦截器并执行<code>interceptor.intercept()</code> 方法。而无论是我们自定义的Interceptor，还是OkHttp中默认实现的，都会继承Interceptor这个接口，因此都会实现intercept()方法。</p>
+<p>接下来，我们来看看RetryAndFollowUpInterceptor里面做了什么？</p>
+<blockquote>
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&gt; This interceptor recovers <span class="built_in">from</span> failures <span class="keyword">and</span> follows redirects <span class="keyword">as</span> necessary. It may throw <span class="keyword">an</span> [IOException] <span class="keyword">if</span> <span class="keyword">the</span> call was canceled.</span><br><span class="line">&gt; </span><br><span class="line">&gt; 这个拦截器主要是请求失败时尝试恢复连接，还有处理重定向的问题。</span><br><span class="line">&gt; 如果请求被取消了，可能会抛出IOException异常</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>既然主要是处理这两个问题，那么我们就重点关注看看，这个拦截器是如何处理的。</p>
+<h5 id="失败时尝试重连"><a href="#失败时尝试重连" class="headerlink" title="失败时尝试重连"></a>失败时尝试重连</h5><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Throws(IOException::class)</span></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">intercept</span><span class="params">(chain: <span class="type">Interceptor</span>.<span class="type">Chain</span>)</span></span>: Response &#123;</span><br><span class="line">    <span class="keyword">var</span> request = chain.request()</span><br><span class="line">    <span class="keyword">val</span> realChain = chain <span class="keyword">as</span> RealInterceptorChain</span><br><span class="line">    <span class="keyword">val</span> transmitter = realChain.transmitter()</span><br><span class="line">    <span class="keyword">var</span> followUpCount = <span class="number">0</span></span><br><span class="line">    <span class="keyword">var</span> priorResponse: Response? = <span class="literal">null</span></span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">      transmitter.prepareToConnect(request)   <span class="comment">// 创建Stream</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (transmitter.isCanceled) &#123;</span><br><span class="line">        <span class="keyword">throw</span> IOException(<span class="string">"Canceled"</span>)  <span class="comment">// 请求被取消时抛出异常</span></span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">var</span> response: Response</span><br><span class="line">      <span class="keyword">var</span> success = <span class="literal">false</span></span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        response = realChain.proceed(request, transmitter, <span class="literal">null</span>)</span><br><span class="line">        success = <span class="literal">true</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (e: RouteException) &#123;</span><br><span class="line">        <span class="comment">// 路由异常，调用recover()</span></span><br><span class="line">        <span class="keyword">if</span> (!recover(e.lastConnectException, transmitter, <span class="literal">false</span>, request)) &#123;</span><br><span class="line">          <span class="keyword">throw</span> e.firstConnectException</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">      &#125; <span class="keyword">catch</span> (e: IOException) &#123;</span><br><span class="line">        <span class="comment">// 服务端异常，调用recover()</span></span><br><span class="line">        <span class="keyword">val</span> requestSendStarted = e !<span class="keyword">is</span> ConnectionShutdownException</span><br><span class="line">        <span class="keyword">if</span> (!recover(e, transmitter, requestSendStarted, request)) <span class="keyword">throw</span> e</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">      &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="comment">// The network call threw an exception. Release any resources.</span></span><br><span class="line">        <span class="keyword">if</span> (!success) &#123;</span><br><span class="line">          transmitter.exchangeDoneDueToException()</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line"> 		<span class="comment">// 省略代码</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>在发起请求的时候，如果出现了异常，根据不同异常会调用recover()方法，我们看看这个方法做了什么</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">fun</span> <span class="title">recover</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">  e: <span class="type">IOException</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">  transmitter: <span class="type">Transmitter</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">  requestSendStarted: <span class="type">Boolean</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">  userRequest: <span class="type">Request</span></span></span></span><br><span class="line"><span class="function"><span class="params">)</span></span>: <span class="built_in">Boolean</span> &#123;</span><br><span class="line">  <span class="comment">// 判断客户端是否禁止重连，是的话直接返回false</span></span><br><span class="line">  <span class="keyword">if</span> (!client.retryOnConnectionFailure) <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 如果已经发送了请求，那么也直接返回false</span></span><br><span class="line">  <span class="keyword">if</span> (requestSendStarted &amp;&amp; requestIsOneShot(e, userRequest)) <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 如果是Fatal类异常，返回false</span></span><br><span class="line">  <span class="keyword">if</span> (!isRecoverable(e, requestSendStarted)) <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 如果没有其他路由可以尝试重连，返回false</span></span><br><span class="line">  <span class="keyword">if</span> (!transmitter.canRetry()) <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">  </span><br><span class="line">  <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>如果我们在OkHttpClient设置了不能重连，game over</li>
+<li>这个重连只能发生在连接失败的时候，如果是请求已经发送了，game over</li>
+<li>如果这个异常是协议相关的问题，那么同样game over</li>
+<li>OkHttp会在连接池里面尝试不同的IP，如果没有其他可用的IP，game over</li>
+</ul>
+<p>如果这个异常是在连接的时候发生的，而且还有可用的IP，我们也设置了可以重试（默认为true），那么就会再构造一个Request，用于重试。</p>
+<p>这里OkHttp用了一个很巧妙的方法来实现，那就是递归。</p>
+<ol>
+<li><p>首先在intercept()方法开头加入了while(true)，只要没有return或者throw excpetion，就会一直执行下去</p>
+</li>
+<li><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">response = realChain.proceed(request, transmitter, <span class="literal">null</span>)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>通过上面这一句代码，每次构建一个Request，然后调用proceed进行请求</p>
+</li>
+<li><p>每一个请求的结果都会返回到上一个Response中</p>
+</li>
+<li><p>每次请求完毕followUpCount 加一，在OkHttp中，这个参数用于控制请求最大数，默认是20，一旦超过这个数，也会抛出异常</p>
+</li>
+</ol>
+<h5 id="如何进行重定向"><a href="#如何进行重定向" class="headerlink" title="如何进行重定向"></a>如何进行重定向</h5><p>重定向和重试其实都在intercept()方法中，主要是这句代码：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> followUp = followUpRequest(response, route)</span><br></pre></td></tr></table></figure>
+
+<p>followUpRequeset():</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Throws(IOException::class)</span></span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">fun</span> <span class="title">followUpRequest</span><span class="params">(userResponse: <span class="type">Response</span>, route: <span class="type">Route</span>?)</span></span>: Request? &#123;</span><br><span class="line">  <span class="keyword">val</span> responseCode = userResponse.code</span><br><span class="line"></span><br><span class="line">  <span class="keyword">val</span> method = userResponse.request.method</span><br><span class="line">  <span class="keyword">when</span> (responseCode) &#123;</span><br><span class="line">    HTTP_PROXY_AUTH -&gt; &#123;</span><br><span class="line">      <span class="comment">// 省略代码</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1.重定向 (307, 308)</span></span><br><span class="line">    HTTP_PERM_REDIRECT, HTTP_TEMP_REDIRECT -&gt; &#123;</span><br><span class="line">      <span class="keyword">if</span> (method != <span class="string">"GET"</span> &amp;&amp; method != <span class="string">"HEAD"</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> buildRedirectRequest(userResponse, method)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2.重定向（300,301,302,303）</span></span><br><span class="line">    HTTP_MULT_CHOICE, HTTP_MOVED_PERM, HTTP_MOVED_TEMP, HTTP_SEE_OTHER -&gt; &#123;</span><br><span class="line">      <span class="keyword">return</span> buildRedirectRequest(userResponse, method)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    HTTP_CLIENT_TIMEOUT -&gt; &#123;</span><br><span class="line">      <span class="comment">// 省略代码</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">return</span> userResponse.request</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    HTTP_UNAVAILABLE -&gt; &#123;</span><br><span class="line">      <span class="comment">// 省略代码</span></span><br><span class="line"></span><br><span class="line">      <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> -&gt; <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这里通过判断<code>responseCode</code>来进行不同的处理，我们重点关注重定向，看看<code>buildRedirectRequest()</code>方法：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">fun</span> <span class="title">buildRedirectRequest</span><span class="params">(userResponse: <span class="type">Response</span>, method: <span class="type">String</span>)</span></span>: Request? &#123;</span><br><span class="line">  <span class="comment">// 1.客户端是否支持重定向</span></span><br><span class="line">  <span class="keyword">if</span> (!client.followRedirects) <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line"></span><br><span class="line">  <span class="keyword">val</span> location = userResponse.header(<span class="string">"Location"</span>) ?: <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line">  <span class="comment">// 2.是不是http/https协议，不是的话抛异常，返回null</span></span><br><span class="line">  <span class="keyword">val</span> url = userResponse.request.url.resolve(location) ?: <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 3.是否支持Ssl重定向</span></span><br><span class="line">  <span class="keyword">val</span> sameScheme = url.scheme == userResponse.request.url.scheme</span><br><span class="line">  <span class="keyword">if</span> (!sameScheme &amp;&amp; !client.followSslRedirects) <span class="keyword">return</span> <span class="literal">null</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 4.构建请求体</span></span><br><span class="line">  <span class="keyword">val</span> requestBuilder = userResponse.request.newBuilder()</span><br><span class="line">  <span class="keyword">if</span> (HttpMethod.permitsRequestBody(method)) &#123;</span><br><span class="line">    <span class="keyword">val</span> maintainBody = HttpMethod.redirectsWithBody(method)</span><br><span class="line">    <span class="keyword">if</span> (HttpMethod.redirectsToGet(method)) &#123;</span><br><span class="line">      requestBuilder.method(<span class="string">"GET"</span>, <span class="literal">null</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">val</span> requestBody = <span class="keyword">if</span> (maintainBody) userResponse.request.body <span class="keyword">else</span> <span class="literal">null</span></span><br><span class="line">      requestBuilder.method(method, requestBody)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!maintainBody) &#123;</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Transfer-Encoding"</span>)</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Content-Length"</span>)</span><br><span class="line">      requestBuilder.removeHeader(<span class="string">"Content-Type"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// When redirecting across hosts, drop all authentication headers. This</span></span><br><span class="line">  <span class="comment">// is potentially annoying to the application layer since they have no</span></span><br><span class="line">  <span class="comment">// way to retain them.</span></span><br><span class="line">  <span class="keyword">if</span> (!userResponse.request.url.canReuseConnectionFor(url)) &#123;</span><br><span class="line">    requestBuilder.removeHeader(<span class="string">"Authorization"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> requestBuilder.url(url).build()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里就是一个很标准的Builder模式的应用了，通过<code>request.newBuilder()</code>和后续的<code>builder.xxx()</code>构建一个Request.Builder对象。最终调用<code>build()</code>方法返回Request对象。</p>
+<h5 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h5><p>在RetryAndFollowUpInterceptor中，主要做了两件事</p>
+<ol>
+<li>重试</li>
+<li>重定向</li>
+</ol>
+<p>这两者都是通过<code>followUpRequest()</code>方法来构建一个新的Request，然后递归调用proceed()方法进行请求。中间有很多的错误/异常判断，一旦条件不满足就会停止请求并且释放资源。</p>
+<h2 id="我们在实际工作中如何使用？"><a href="#我们在实际工作中如何使用？" class="headerlink" title="我们在实际工作中如何使用？"></a>我们在实际工作中如何使用？</h2><p>例如，我们现在不想使用OkHttp默认的重试拦截器，希望自己定义重试次数，那么可以这样写：</p>
+<p>RetryInterceptor:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *   author : BlueLzy</span></span><br><span class="line"><span class="comment"> *   e-mail : bluehobert<span class="doctag">@gmail</span>.com</span></span><br><span class="line"><span class="comment"> *   date   : 2020/02/16 16:07</span></span><br><span class="line"><span class="comment"> *   desc   : 重试拦截器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RetryInterceptor</span></span>(<span class="keyword">private</span> <span class="keyword">val</span> maxRetryCount: <span class="built_in">Int</span> = <span class="number">2</span>) : Interceptor &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">var</span> retryNum = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">intercept</span><span class="params">(chain: <span class="type">Interceptor</span>.<span class="type">Chain</span>)</span></span>: Response =</span><br><span class="line">        chain.proceed(chain.request()).apply &#123;</span><br><span class="line">            <span class="keyword">while</span> (!isSuccessful &amp;&amp; retryNum &lt; maxRetryCount) &#123;</span><br><span class="line">                retryNum++</span><br><span class="line">                logger.info(<span class="string">"BlueLzy --- 重试次数：<span class="variable">$retryNum</span>"</span>)</span><br><span class="line">                chain.proceed(request)</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为了能测试重试拦截器，我们定义一个测试请求，每次返回400</p>
+<p>TestInterceptor:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *   author : BlueLzy</span></span><br><span class="line"><span class="comment"> *   e-mail : bluehobert<span class="doctag">@gmail</span>.com</span></span><br><span class="line"><span class="comment"> *   date   : 2020/02/16 16:18</span></span><br><span class="line"><span class="comment"> *   desc   : </span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestInterceptor</span> : <span class="type">Interceptor &#123;</span></span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">intercept</span><span class="params">(chain: <span class="type">Interceptor</span>.<span class="type">Chain</span>)</span></span>: Response &#123;</span><br><span class="line">        <span class="keyword">val</span> request = chain.request()</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">if</span> (request.url.toString() == TEST_URL) &#123;</span><br><span class="line">            <span class="keyword">val</span> responseString = <span class="string">"我是响应数据"</span></span><br><span class="line">            Response.Builder()</span><br><span class="line">                .code(<span class="number">400</span>)</span><br><span class="line">                .request(request)</span><br><span class="line">                .protocol(Protocol.HTTP_1_1)</span><br><span class="line">                .message(responseString)</span><br><span class="line">                .body(responseString.toResponseBody(<span class="string">"application/json"</span>.toMediaTypeOrNull()))</span><br><span class="line">                .addHeader(<span class="string">"content-type"</span>, <span class="string">"application/json"</span>)</span><br><span class="line">                .build()</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            chain.proceed(request)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后发起请求</p>
+<p>OkHttpTest:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">OkHttpTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">internal</span> <span class="function"><span class="keyword">fun</span> <span class="title">test</span><span class="params">()</span></span> &#123;</span><br><span class="line">        Request.Builder()</span><br><span class="line">            .url(TEST_URL).build().let &#123; request -&gt;</span><br><span class="line">                OkHttpClient.Builder()</span><br><span class="line">                    .addInterceptor(RetryInterceptor()) <span class="comment">// 添加重试拦截器，默认重试次数为2</span></span><br><span class="line">                    .addInterceptor(TestInterceptor())  <span class="comment">// 添加测试请求</span></span><br><span class="line">                    .build()</span><br><span class="line">                    .newCall(request).enqueue(<span class="keyword">object</span> : Callback &#123;</span><br><span class="line">                        <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onFailure</span><span class="params">(call: <span class="type">Call</span>, e: <span class="type">IOException</span>)</span></span> &#123;</span><br><span class="line">                            println(<span class="string">"BlueLzy --- <span class="subst">$&#123;e.message&#125;</span>"</span>)</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                        <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onResponse</span><span class="params">(call: <span class="type">Call</span>, response: <span class="type">Response</span>)</span></span> &#123;</span><br><span class="line">                            println(<span class="string">"BlueLzy --- <span class="subst">$&#123;response.message&#125;</span>"</span>)</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                    &#125;)</span><br><span class="line">            &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">companion</span> <span class="keyword">object</span> &#123;</span><br><span class="line">        <span class="keyword">const</span> <span class="keyword">val</span> TEST_URL = <span class="string">"https://www.baidu.com/"</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到logcat打印出来的信息：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">2020</span><span class="bullet">-02</span><span class="bullet">-16</span> <span class="number">16</span><span class="string">:46:29.338</span> <span class="number">1914</span><span class="bullet">-2113</span><span class="string">/com.bluelzy.kotlinlearning</span> <span class="string">I/TaskRunner:</span> <span class="string">BlueLzy</span> <span class="meta">---</span> <span class="string">Sending</span> <span class="string">request</span> <span class="attr">https://www.baidu.com/</span></span><br><span class="line"><span class="number">2020</span><span class="bullet">-02</span><span class="bullet">-16</span> <span class="number">16</span><span class="string">:46:29.338</span> <span class="number">1914</span><span class="bullet">-2113</span><span class="string">/com.bluelzy.kotlinlearning</span> <span class="string">I/TaskRunner:</span> <span class="string">BlueLzy</span> <span class="meta">---</span> <span class="string">重试次数：1</span></span><br><span class="line"><span class="number">2020</span><span class="bullet">-02</span><span class="bullet">-16</span> <span class="number">16</span><span class="string">:46:29.339</span> <span class="number">1914</span><span class="bullet">-2113</span><span class="string">/com.bluelzy.kotlinlearning</span> <span class="string">I/TaskRunner:</span> <span class="string">BlueLzy</span> <span class="meta">---</span> <span class="string">重试次数：2</span></span><br><span class="line"><span class="number">2020</span><span class="bullet">-02</span><span class="bullet">-16</span> <span class="number">16</span><span class="string">:46:29.339</span> <span class="number">1914</span><span class="bullet">-2113</span><span class="string">/com.bluelzy.kotlinlearning</span> <span class="string">I/TaskRunner:</span> <span class="string">BlueLzy</span> <span class="meta">---</span> <span class="string">Received</span> <span class="string">response</span> <span class="string">for</span> <span class="attr">https://www.baidu.com/</span> <span class="string">in</span> <span class="number">1.0</span><span class="string">ms</span></span><br><span class="line"><span class="attr">    content-type:</span> <span class="string">application/json</span></span><br><span class="line"><span class="number">2020</span><span class="bullet">-02</span><span class="bullet">-16</span> <span class="number">16</span><span class="string">:46:29.339</span> <span class="number">1914</span><span class="bullet">-2113</span><span class="string">/com.bluelzy.kotlinlearning</span> <span class="string">I/System.out:</span> <span class="string">BlueLzy</span> <span class="meta">---</span> <span class="string">我是响应数据</span></span><br></pre></td></tr></table></figure>
+
+<p>发起了1次默认请求+2次重试的请求 = 3次请求。这样就实现了自由控制重试次数的需求了，当然我们也可以在每次重试中做其他的操作，例如更改请求头和请求体。</p>
+<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><p>本文我们主要说了OkHttp中的重试机制和重定向，分析了RetryAndFollowUpinterceptor的源码。最后举了个在实际工作中应用的小例子。</p>
+<p>下一篇我们说一下OkHttp中的缓存机制 - CacheInterceptor</p>
+<p>如有不对之处，欢迎大家多多交流。感谢阅读！</p>
+
+      
+    </div>
+    
+    
+    
+
+<div>
+  
+    <div>
+    
+        <div style="text-align:center;color: #636363;font-size:14px;letter-spacing: 10px">本文结束啦<i class="fa fa-bell"></i>感谢您的阅读</div>
+    
+</div>
+  
+</div>
+
+    
+
+    
+
+    
+      <div>
+        <ul class="post-copyright">
+  
+  <!-- 本文标题 -->
+  <li>
+    <strong>本文标题： </strong>
+    OkHttp4.3源码解析之 - 重试和重定向
+  </li>
+  <li class="post-copyright-author">
+    <strong>本文作者：</strong>
+    BlueLzy
+  </li>
+    <!-- 创建时间 -->
+  <li>
+    <strong>创建时间： </strong>
+    2020年02月16日 - 17时02分
+  </li>
+
+  <li class="post-copyright-link">
+    <strong>引用链接：</strong>
+    <a href="https://www.bluelzy.com/articles/okhttp_source_code_retry_redirect.html" title="OkHttp4.3源码解析之 - 重试和重定向">https://www.bluelzy.com/articles/okhttp_source_code_retry_redirect.html</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>
+    本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="external nofollow" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+
+      </div>
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Adnroid-Source-Code/" rel="tag"><i class="fa fa-tag"></i>
+ Adnroid Source Code</a>
+          
+            <a href="/tags/OkHttp/" rel="tag"><i class="fa fa-tag"></i>
+ OkHttp</a>
+          
+        </div>
+      
+
+      
+      
+    <div class="post-widgets">
+    
+      <div class="wp_rating">
+        <div id="wpac-rating"></div>
+      </div>
+    
+
+        <div class="post-widgets">
+        
+          <div class="wp_rating">
+            <div id="wpac-rating"></div>
+          </div>
+        
+
+        
+
+        
+        </div>
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/okhttp_source_code_request.html" rel="next" title="OkHttp4.3源码解析之 - 发起请求">
+                <i class="fa fa-chevron-left"></i> OkHttp4.3源码解析之 - 发起请求
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </div></footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+      <div id="sidebar-dimmer"></div>
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/favicon4.ico" alt="BlueLzy">
+            
+              <p class="site-author-name" itemprop="name">BlueLzy</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">56</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">64</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/bluezzyy" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="http://blog.csdn.net/blue_zy" target="_blank" title="Csdn">
+                      
+                        <i class="fa fa-fw fa-grav"></i>Csdn</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="http://www.zhihu.com/people/zy-blue" target="_blank" title="Zhihu">
+                      
+                        <i class="fa fa-fw fa-spinner"></i>Zhihu</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:bluehobert@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#OkHttp4-3源码解析之-重试和重定向"><span class="nav-number">1.</span> <span class="nav-text">OkHttp4.3源码解析之 - 重试和重定向</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#回顾"><span class="nav-number">1.1.</span> <span class="nav-text">回顾</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一个简单的例子"><span class="nav-number">1.2.</span> <span class="nav-text">一个简单的例子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OkHttp中的责任链模式"><span class="nav-number">1.3.</span> <span class="nav-text">OkHttp中的责任链模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#自定义的拦截器是如何添加到OkHttp中的？"><span class="nav-number">1.3.1.</span> <span class="nav-text">自定义的拦截器是如何添加到OkHttp中的？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OkHttp的责任链模式是如何起作用的？"><span class="nav-number">1.3.2.</span> <span class="nav-text">OkHttp的责任链模式是如何起作用的？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#RetryAndFollowUpInterceptor"><span class="nav-number">1.3.2.1.</span> <span class="nav-text">RetryAndFollowUpInterceptor</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#失败时尝试重连"><span class="nav-number">1.3.2.1.1.</span> <span class="nav-text">失败时尝试重连</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#如何进行重定向"><span class="nav-number">1.3.2.1.2.</span> <span class="nav-text">如何进行重定向</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#总结"><span class="nav-number">1.3.2.1.3.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#我们在实际工作中如何使用？"><span class="nav-number">1.4.</span> <span class="nav-text">我们在实际工作中如何使用？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结-1"><span class="nav-number">1.5.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+            <span id="scrollpercent"><span>0</span>%</span>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">BlueLzy</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">站点总字数&#58;</span>
+    
+    <span title="站点总字数">77.9k</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a></div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/2.1.3/jquery.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery_lazyload/1.9.7/jquery.lazyload.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="https://cdn.bootcss.com/velocity/1.2.1/velocity.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="https://cdn.bootcss.com/velocity/1.2.1/velocity.ui.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="https://cdn.bootcss.com/fancybox/3.2.5/jquery.fancybox.min.js"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://bluelzy.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://www.bluelzy.com/articles/okhttp_source_code_retry_redirect.html';
+          this.page.identifier = 'articles/okhttp_source_code_retry_redirect.html';
+          this.page.title = 'OkHttp4.3源码解析之 - 重试和重定向';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://bluelzy.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+  <script type="text/javascript">
+  wpac_init = window.wpac_init || [];
+  wpac_init.push({widget: 'Rating', id: 19326,
+    el: 'wpac-rating',
+    color: 'fc6423'
+  });
+  (function() {
+    if ('WIDGETPACK_LOADED' in window) return;
+    WIDGETPACK_LOADED = true;
+    var mc = document.createElement('script');
+    mc.type = 'text/javascript';
+    mc.async = true;
+    mc.src = '//embed.widgetpack.com/widget.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(mc, s.nextSibling);
+  })();
+  </script>
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
